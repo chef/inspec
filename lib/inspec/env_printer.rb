@@ -1,4 +1,5 @@
 require "inspec/shell_detector"
+require "inspec/ui"
 require "erb"
 require "shellwords"
 
@@ -22,14 +23,14 @@ module Inspec
       @command_class = command_class
     end
 
-    def print_and_exit!
-      exit_no_shell unless have_shell?
-      exit_no_completion unless have_shell_completion?
+    def print_and_return_exit_code
+      return exit_code_no_shell unless have_shell?
+      return exit_code_no_completion unless have_shell_completion?
 
       print_completion_for_shell
       print_detection_warning($stdout) if @detected
       print_usage_guidance
-      exit 0
+      Inspec::UI::EXIT_NORMAL
     end
 
     private
@@ -82,13 +83,13 @@ module Inspec
       EOF
     end
 
-    def exit_no_completion
+    def exit_code_no_completion
       $stderr.puts "# No completion script for #{@shell}!"
       print_detection_warning($stderr) if @detected
-      exit 1
+      Inspec::UI::EXIT_USAGE_ERROR
     end
 
-    def exit_no_shell
+    def exit_code_no_shell
       if @detected
         $stderr.puts "# Unable to automatically detect shell and no shell was provided."
       end
@@ -100,7 +101,7 @@ module Inspec
         #
         # Currently supported shells are: #{shells_with_completions.join(", ")}
       EOF
-      exit 1
+      Inspec::UI::EXIT_USAGE_ERROR
     end
 
     class TemplateContext

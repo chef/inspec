@@ -4,7 +4,7 @@ describe "inspec detect" do
   include FunctionalHelper
 
   it "outputs the correct data" do
-    res = inspec("detect")
+    res = inspec("detect --log-level=warn")
 
     _(res.stderr).must_equal ""
 
@@ -19,7 +19,7 @@ describe "inspec detect" do
   end
 
   it "outputs the correct data when target the target an API" do
-    res = inspec("detect -t aws://")
+    res = inspec("detect -t aws:// --log-level=warn")
     _(res.stderr).must_equal ""
 
     stdout = res.stdout
@@ -35,7 +35,7 @@ describe "inspec detect" do
 
   describe "when `--format json` is used`" do
     it "outputs the correct JSON data" do
-      res = inspec("detect --format json")
+      res = inspec("detect --format json --log-level=warn")
       _(res.stderr).must_equal ""
 
       json = JSON.parse(res.stdout)
@@ -48,7 +48,7 @@ describe "inspec detect" do
     end
 
     it "outputs the correct JSON data when the target an API" do
-      res = inspec("detect -t aws:// --format json")
+      res = inspec("detect -t aws:// --format json --log-level=warn")
       _(res.stderr).must_equal ""
 
       json = JSON.parse(res.stdout)

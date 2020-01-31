@@ -5,7 +5,7 @@ describe "inspec schema" do
 
   describe "extracting the platforms schema export" do
     it "can execute a platforms schema command" do
-      out = inspec("schema platforms")
+      out = inspec("schema platforms --log-level=warn")
 
       data = JSON.parse(out.stdout)
       _(data.class).must_equal Array

@@ -2,6 +2,7 @@ require "helper"
 require "train"
 
 ENV["CHEF_LICENSE"] = "accept-no-persist"
+ENV["CHEF_TELEMETRY"] = "opt-out-no-persist"
 
 CMD = Train.create("local", command_runner: :generic).connection
 

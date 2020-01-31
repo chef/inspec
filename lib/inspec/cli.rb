@@ -71,29 +71,32 @@ class Inspec::InspecCLI < Inspec::BaseCLI
     diagnose(o)
     o["log_location"] = $stderr
     configure_logger(o)
+    configure_telemeter(o)
 
-    o[:backend] = Inspec::Backend.create(Inspec::Config.mock)
-    o[:check_mode] = true
-    o[:vendor_cache] = Inspec::Cache.new(o[:vendor_cache])
+    telemetry_time_invocation("json") do
+      o[:backend] = Inspec::Backend.create(Inspec::Config.mock)
+      o[:check_mode] = true
+      o[:vendor_cache] = Inspec::Cache.new(o[:vendor_cache])
 
-    profile = Inspec::Profile.for_target(target, o)
-    info = profile.info
-    # add in inspec version
-    info[:generator] = {
-      name: "inspec",
-      version: Inspec::VERSION,
-    }
-    dst = o[:output].to_s
-    if dst.empty?
-      puts JSON.dump(info)
-    else
-      if File.exist? dst
-        puts "----> updating #{dst}"
+      profile = Inspec::Profile.for_target(target, o)
+      info = profile.info
+      # add in inspec version
+      info[:generator] = {
+        name: "inspec",
+        version: Inspec::VERSION,
+      }
+      dst = o[:output].to_s
+      if dst.empty?
+        puts JSON.dump(info)
       else
-        puts "----> creating #{dst}"
+        if File.exist? dst
+          puts "----> updating #{dst}"
+        else
+          puts "----> creating #{dst}"
+        end
+        fdst = File.expand_path(dst)
+        File.write(fdst, JSON.dump(info))
       end
-      fdst = File.expand_path(dst)
-      File.write(fdst, JSON.dump(info))
     end
   rescue StandardError => e
     pretty_handle_exception(e)
@@ -108,45 +111,51 @@ class Inspec::InspecCLI < Inspec::BaseCLI
     o["log_location"] ||= STDERR if o["format"] == "json"
     o["log_level"] ||= "warn"
     configure_logger(o)
+    configure_telemeter(o)
 
-    o[:backend] = Inspec::Backend.create(Inspec::Config.mock)
-    o[:check_mode] = true
-    o[:vendor_cache] = Inspec::Cache.new(o[:vendor_cache])
+    valid = nil
+    telemetry_time_invocation("check") do
 
-    # run check
-    profile = Inspec::Profile.for_target(path, o)
-    result = profile.check
+      o[:backend] = Inspec::Backend.create(Inspec::Config.mock)
+      o[:check_mode] = true
+      o[:vendor_cache] = Inspec::Cache.new(o[:vendor_cache])
 
-    if o["format"] == "json"
-      puts JSON.generate(result)
-    else
-      %w{location profile controls timestamp valid}.each do |item|
-        prepared_string = format("%-12s %s",
-                                 "#{item.to_s.capitalize} :",
-                                 result[:summary][item.to_sym])
-        ui.plain_line(prepared_string)
-      end
-      puts
+      # run check
+      profile = Inspec::Profile.for_target(path, o)
+      result = profile.check
+      valid = result[:summary][:valid]
 
-      if result[:errors].empty? && result[:warnings].empty?
-        ui.plain_line("No errors or warnings")
+      if o["format"] == "json"
+        puts JSON.generate(result)
       else
-        item_msg = lambda { |item|
-          pos = [item[:file], item[:line], item[:column]].compact.join(":")
-          pos.empty? ? item[:msg] : pos + ": " + item[:msg]
-        }
-
-        result[:errors].each { |item| ui.red " #{Inspec::UI::GLYPHS[:script_x]}  #{item_msg.call(item)}\n" }
-        result[:warnings].each { |item| ui.yellow " !  #{item_msg.call(item)}\n" }
-
+        %w{location profile controls timestamp valid}.each do |item|
+          prepared_string = format("%-12s %s",
+                                  "#{item.to_s.capitalize} :",
+                                  result[:summary][item.to_sym])
+          ui.plain_line(prepared_string)
+        end
         puts
 
-        errors = ui.red("#{result[:errors].length} errors", print: false)
-        warnings = ui.yellow("#{result[:warnings].length} warnings", print: false)
-        ui.plain_line("Summary:     #{errors}, #{warnings}")
+        if result[:errors].empty? && result[:warnings].empty?
+          ui.plain_line("No errors or warnings")
+        else
+          item_msg = lambda { |item|
+            pos = [item[:file], item[:line], item[:column]].compact.join(":")
+            pos.empty? ? item[:msg] : pos + ": " + item[:msg]
+          }
+
+          result[:errors].each { |item| ui.red " #{Inspec::UI::GLYPHS[:script_x]}  #{item_msg.call(item)}\n" }
+          result[:warnings].each { |item| ui.yellow " !  #{item_msg.call(item)}\n" }
+
+          puts
+
+          errors = ui.red("#{result[:errors].length} errors", print: false)
+          warnings = ui.yellow("#{result[:warnings].length} warnings", print: false)
+          ui.plain_line("Summary:     #{errors}, #{warnings}")
+        end
       end
     end
-    ui.exit Inspec::UI::EXIT_USAGE_ERROR unless result[:summary][:valid]
+    ui.exit Inspec::UI::EXIT_USAGE_ERROR unless valid
   rescue StandardError => e
     pretty_handle_exception(e)
   end
@@ -159,8 +168,9 @@ class Inspec::InspecCLI < Inspec::BaseCLI
     configure_logger(o)
     o[:logger] = Logger.new($stdout)
     o[:logger].level = get_log_level(o[:log_level])
+    configure_telemeter(o)
 
-    vendor_deps(path, o)
+    telemetry_time_invocation("vendor") { vendor_deps(path, o) }
   end
 
   desc "archive PATH", "archive a profile to tar.gz (default) or zip"
@@ -183,23 +193,30 @@ class Inspec::InspecCLI < Inspec::BaseCLI
 
     o[:logger] = Logger.new($stdout)
     o[:logger].level = get_log_level(o[:log_level])
-    o[:backend] = Inspec::Backend.create(Inspec::Config.mock)
+    configure_telemeter(o)
 
-    # Force vendoring with overwrite when archiving
-    vendor_options = o.dup
-    vendor_options[:overwrite] = true
-    vendor_deps(path, vendor_options)
+    exit_code = nil
+    telemetry_time_invocation("archive") do
+      o[:backend] = Inspec::Backend.create(Inspec::Config.mock)
 
-    profile = Inspec::Profile.for_target(path, o)
-    result = profile.check
+      # Force vendoring with overwrite when archiving
+      vendor_options = o.dup
+      vendor_options[:overwrite] = true
+      vendor_deps(path, vendor_options)
 
-    if result && !o[:ignore_errors] == false
-      o[:logger].info "Profile check failed. Please fix the profile before generating an archive."
-      return ui.exit Inspec::UI::EXIT_USAGE_ERROR
+      profile = Inspec::Profile.for_target(path, o)
+      result = profile.check
+
+      if result && !o[:ignore_errors] == false
+        o[:logger].info "Profile check failed. Please fix the profile before generating an archive."
+        exit_code = Inspec::UI::EXIT_USAGE_ERROR
+      else
+        # generate archive
+        exit_code = profile.archive(o) ? Inspec::UI::EXIT_NORMAL : Inspec::UI::EXIT_USAGE_ERROR
+      end
     end
+    ui.exit exit_code
 
-    # generate archive
-    ui.exit Inspec::UI::EXIT_USAGE_ERROR unless profile.archive(o)
   rescue StandardError => e
     pretty_handle_exception(e)
   end
@@ -282,11 +299,16 @@ class Inspec::InspecCLI < Inspec::BaseCLI
     o = config
     diagnose(o)
     configure_logger(o)
+    configure_telemeter(o)
 
-    runner = Inspec::Runner.new(o)
-    targets.each { |target| runner.add_target(target) }
+    exit_code = nil
+    telemetry_time_invocation("exec") do
+      runner = Inspec::Runner.new(o)
+      targets.each { |target| runner.add_target(target) }
 
-    ui.exit runner.run
+      exit_code = runner.run
+    end
+    ui.exit exit_code
   rescue ArgumentError, RuntimeError, Train::UserError => e
     $stderr.puts e.message
     ui.exit Inspec::UI::EXIT_USAGE_ERROR
@@ -300,16 +322,19 @@ class Inspec::InspecCLI < Inspec::BaseCLI
   def detect
     o = config
     o[:command] = "platform.params"
-
+    o["log_location"] = $stderr if o["format"] == "json"
     configure_logger(o)
+    configure_telemeter(o)
 
-    (_, res) = run_command(o)
+    telemetry_time_invocation("detect") do
+      (_, res) = run_command(o)
 
-    if o["format"] == "json"
-      puts res.to_json
-    else
-      ui.headline("Platform Details")
-      ui.plain Inspec::BaseCLI.format_platform_info(params: res, indent: 0, color: 36)
+      if o["format"] == "json"
+        puts res.to_json
+      else
+        ui.headline("Platform Details")
+        ui.plain Inspec::BaseCLI.format_platform_info(params: res, indent: 0, color: 36)
+      end
     end
   rescue ArgumentError, RuntimeError, Train::UserError => e
     $stderr.puts e.message
@@ -337,27 +362,33 @@ class Inspec::InspecCLI < Inspec::BaseCLI
     log_device = suppress_log_output?(o) ? nil : $stdout
     o[:logger] = Logger.new(log_device)
     o[:logger].level = get_log_level(o[:log_level])
+    configure_telemeter(o)
 
-    if o[:command].nil?
-      runner = Inspec::Runner.new(o)
-      return Inspec::Shell.new(runner).start
+    exit_code = nil
+    telemetry_time_invocation("shell") do
+      if o[:command].nil?
+        runner = Inspec::Runner.new(o)
+        exit_code = Inspec::Shell.new(runner).start || Inspec::UI::EXIT_NORMAL
+      else
+        run_type, res = run_command(o)
+        if run_type != :ruby_eval
+          exit_code = res
+        else
+          # No InSpec tests - just print evaluation output.
+          reporters = o["reporter"] || {}
+          if reporters.keys.include?("json")
+            res = if res.respond_to?(:to_json)
+                    res.to_json
+                  else
+                    JSON.dump(res)
+                  end
+          end
+          puts res
+          exit_code = Inspec::UI::EXIT_NORMAL
+        end
+      end
     end
-
-    run_type, res = run_command(o)
-    ui.exit res unless run_type == :ruby_eval
-
-    # No InSpec tests - just print evaluation output.
-    reporters = o["reporter"] || {}
-    if reporters.keys.include?("json")
-      res = if res.respond_to?(:to_json)
-              res.to_json
-            else
-              JSON.dump(res)
-            end
-    end
-
-    puts res
-    ui.exit Inspec::UI::EXIT_NORMAL
+    exit exit_code
   rescue RuntimeError, Train::UserError => e
     $stderr.puts e.message
   rescue StandardError => e
@@ -366,17 +397,32 @@ class Inspec::InspecCLI < Inspec::BaseCLI
 
   desc "env", "Output shell-appropriate completion configuration"
   def env(shell = nil)
-    p = Inspec::EnvPrinter.new(self.class, shell)
-    p.print_and_exit!
+    o = config
+    o["log_location"] = $stderr
+    configure_logger(o)
+    configure_telemeter(o)
+    exit_code = nil
+    telemetry_time_invocation("env") do
+      p = Inspec::EnvPrinter.new(self.class, shell)
+      exit_code = p.print_and_return_exit_code
+    end
+    exit exit_code
   rescue StandardError => e
     pretty_handle_exception(e)
   end
 
   desc "schema NAME", "print the JSON schema", hide: true
   def schema(name)
-    require "inspec/schema"
+    o = config
+    o["log_location"] = $stderr
+    configure_logger(o)
+    configure_telemeter(o)
+    telemetry_time_invocation("schema") do
 
-    puts Inspec::Schema.json(name)
+      require "inspec/schema"
+
+      puts Inspec::Schema.json(name)
+    end
   rescue StandardError => e
     puts e
     puts "Valid schemas are #{Inspec::Schema.names.join(", ")}"
@@ -385,19 +431,21 @@ class Inspec::InspecCLI < Inspec::BaseCLI
   desc "version", "prints the version of this tool"
   option :format, type: :string
   def version
-    if config["format"] == "json"
-      v = { version: Inspec::VERSION }
-      puts v.to_json
-    else
-      puts Inspec::VERSION
+    o = config
+    o["log_location"] = $stderr
+    o["log_level"] = "warn" # suppress noisy messages from chef-telemetry
+    configure_logger(o)
+    configure_telemeter(o)
+    telemetry_time_invocation("version") do
+      if config["format"] == "json"
+        v = { version: Inspec::VERSION }
+        puts v.to_json
+      else
+        puts Inspec::VERSION
+      end
     end
   end
   map %w{-v --version} => :version
-
-  desc "nothing", "does nothing"
-  def nothing
-    puts "you did nothing"
-  end
 
   private
 
