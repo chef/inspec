@@ -50,6 +50,12 @@ module Inspec::Plugin::V2
       known_plugin?(name.to_sym) && registry[name.to_sym].installation_type == :path
     end
 
+    def profile_bundled_plugin?(name)
+      return unless known_plugin?(name.to_sym)
+
+      registry[name.to_sym].installation_type == :profile_bundled || name.start_with?("profile")
+    end
+
     def find_status_by_class(klass)
       registry.values.detect { |status| status.plugin_class == klass }
     end

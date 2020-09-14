@@ -49,6 +49,9 @@ module Inspec::Plugin::V2
       # Be careful not to actually iterate directly over the registry here;
       # we want to allow "sidecar loading", in which case a plugin may add an entry to the registry.
       registry.plugin_names.dup.each do |plugin_name|
+        # Skip plugins bundled with profiles, which get loaded automatically
+        next if registry.profile_bundled_plugin?(plugin_name)
+
         plugin_details = registry[plugin_name]
         # We want to capture literally any possible exception here, since we are storing them.
         # rubocop: disable Lint/RescueException

@@ -30,6 +30,12 @@ The normal distribution and installation method is via gems, handled by the `ins
 
 For more on the `plugin` CLI command, run `inspec plugin help`.
 
+### Plugins can be bundled with a profile
+
+If plugin code is tightly coupled to one profile only, you can bundle it into the profile by placing it into the `libraries/` directory.
+
+The plugin name must be prefixed with "profile" to handle loading properly.
+
 ### Plugins may also be found by path to a source tree
 
 For local development or site-specific installations, you can also 'install' a plugin by path using `inspec plugin`, or edit `~/.inspec/plugins.json` directly to add a plugin.
