@@ -379,6 +379,34 @@ module Inspec
         warnings: [],
       }
 
+      # Capture InSpecStyle run
+      runtime_config = Inspec::Config.cached.respond_to?(:final_options) ? Inspec::Config.cached.final_options : {}
+
+      autocorrect = runtime_config[:inspecstyle_autocorrect] ? "-a" : nil
+
+      if runtime_config[:inspecstyle] || runtime_config[:inspecstyle_autocorrect]
+        inspecstyle_target = if File.directory?(@target)
+                           File.join(@target, "**/controls/*.rb")
+                         else
+                           @target
+                         end
+
+        output = capture_stdout do
+          require 'rubocop'
+          ::RuboCop::CLI.new.run(
+            [
+              inspecstyle_target,
+              "-r",
+              "inspecstyle",
+              "--only",
+              "InSpecStyle",
+              autocorrect
+            ]
+          )
+        end
+        result[:inspecstyle] = output
+      end
+
       entry = lambda { |file, line, column, control, msg|
         {
           file: file,
@@ -605,6 +633,18 @@ module Inspec
     end
 
     private
+
+    # Capture STDOUT of block but reset it. Currently for RuboCop `puts` output.
+    # May be worth refactoring into a util if used again, or removed if we have
+    # better existing patterns or utils.
+    def capture_stdout
+      original_stdout = $stdout
+      $stdout = StringIO.new
+      yield
+      $stdout.string
+    ensure
+      $stdout = original_stdout
+    end
 
     # Create an archive name for this profile and an additional options
     # configuration. Either use :output or generate the name from metadata.

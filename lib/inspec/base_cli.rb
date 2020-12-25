@@ -170,6 +170,14 @@ module Inspec
       puts "  Patents: chef.io/patents\n\n"
     end
 
+    def self.check_options
+      profile_options
+      option :inspecstyle, type: :boolean,
+        desc: "Scan profile code for InSpecStyle compliance."
+      option :inspecstyle_autocorrect, type: :boolean,
+        desc: "Scan profile code for InSpecStyle compliance and autocorrect where possible."
+    end
+
     def self.format_platform_info(params: {}, indent: 0, color: 39)
       str = ""
       params.each do |item, info|

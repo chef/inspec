@@ -23,6 +23,22 @@ describe "inspec check" do
     end
   end
 
+  describe "inspecstyle with no violations" do
+    it "outputs as normal" do
+      out = inspec("check " + example_profile + " --inspecstyle")
+      assert_exit_code 0, out
+      _(out.stdout).must_include("no offenses detected")
+    end
+  end
+
+  describe "inspecstyle with violations" do
+    it "shows standard violations" do
+      out = inspec("check " + File.join(profile_path, "inspecstyle_violations") + " --inspecstyle")
+      assert_exit_code 0, out
+      _(out.stdout).must_include("1 offense detected")
+    end
+  end
+
   describe "inspec check with skipping/failing a resource in FilterTable" do
     it "can check a profile containing resource exceptions" do
       out = inspec("check " + File.join(profile_path, "profile-with-resource-exceptions"))

@@ -75,6 +75,14 @@ module Inspec
       end
     end
 
+    # Allows bold and color
+    ANSI_CODES[:color].keys.each do |color|
+      define_method("bold_#{color}") do |str, opts = { print: true }|
+        result = color? ? (ANSI_CODES[:bold] + ANSI_CODES[:color][color] + str.to_s + ANSI_CODES[:reset]) : str.to_s
+        print_or_return(result, opts[:print])
+      end
+    end
+
     #=========================================================================#
     #                   High-Level formatting methods
     #=========================================================================#

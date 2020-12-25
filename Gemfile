@@ -10,6 +10,7 @@ gem "inspec", path: "."
 gem "inspec-bin", path: "./inspec-bin"
 
 gem "ffi", ">= 1.9.14", "!= 1.13.0"
+gem "inspecstyle"
 
 if Gem.ruby_version.to_s.start_with?("2.5")
   # 16.7.23 required ruby 2.6+

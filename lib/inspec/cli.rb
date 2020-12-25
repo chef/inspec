@@ -92,7 +92,7 @@ class Inspec::InspecCLI < Inspec::BaseCLI
 
   desc "check PATH", "verify all tests at the specified PATH"
   option :format, type: :string
-  profile_options
+  check_options
   def check(path) # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
     o = config
     diagnose(o)
@@ -135,6 +135,26 @@ class Inspec::InspecCLI < Inspec::BaseCLI
         errors = ui.red("#{result[:errors].length} errors", print: false)
         warnings = ui.yellow("#{result[:warnings].length} warnings", print: false)
         ui.plain_line("Summary:     #{errors}, #{warnings}")
+      end
+
+      full_inspec_message = <<~EOF
+
+      InSpecStyle is currently in its opt-in phase for InSpec 4 and will be the
+      default for InSpec 5. It helps lint your deprecated InSpec code; gives you
+      tips on writing faster, flexible, more scalable InSpec code; and provides
+      utilities for InSpec autocorrection. It will be available in `check`, as
+      a standalone rubygem, and also as a linter for your favorite code editor!
+
+      Help us make InSpecStyle better! Learn more here:
+      https://github.com/inspec/inspec/issues/5112
+
+      EOF
+
+      # Return InSpecStyle Output
+      if result[:inspecstyle]
+        ui.bold("\nInSpecStyle Evaluation:\n")
+        ui.bold_cyan(full_inspec_message)
+        ui.cyan(result[:inspecstyle])
       end
     end
     ui.exit Inspec::UI::EXIT_USAGE_ERROR unless result[:summary][:valid]
