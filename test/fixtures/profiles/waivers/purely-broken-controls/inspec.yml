@@ -1,0 +1,5 @@
+name: purely-broken-controls
+summary: Verifies we can manually override controls and not break
+version: 0.1.0
+supports:
+  platform: os

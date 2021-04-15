@@ -212,6 +212,9 @@ module Inspec
 
         locked_dependencies.each(&:collect_tests)
 
+        tests = filter_waived_controls
+
+        # Collect tests
         tests.each do |path, content|
           next if content.nil? || content.empty?
 
@@ -226,6 +229,65 @@ module Inspec
         @tests_collected = true
       end
       @runner_context.all_rules
+    end
+
+    # Wipe out waived controls
+    def filter_waived_controls
+      cfg = Inspec::Config.cached
+      return tests unless cfg["filter_waived_controls"]
+
+      ## Find the waivers file
+      # - TODO: cli_opts and instance_variable_get could be exposed
+      waiver_paths = cfg.instance_variable_get(:@cli_opts)["waiver_file"]
+      if waiver_paths.blank?
+        Inspec::Log.error "Must use --waiver-file with --filter-waived-controls"
+        Inspec::UI.new.exit(:usage_error)
+      end
+
+      # # Pull together waiver
+      waived_control_ids = []
+      waiver_paths.each do |waiver_path|
+        waiver_content = YAML.load_file(waiver_path)
+        unless waiver_content
+          # Note that we will have already issued a detailed warning
+          Inspec::Log.error "YAML parsing error in #{waiver_path}"
+          Inspec::UI.new.exit(:usage_error)
+        end
+        waived_control_ids << waiver_content.keys
+      end
+      waived_control_id_regex = "(#{waived_control_ids.join("|")})"
+
+      ## Purge tests (this could be doone in next block for performance)
+      ## TODO: implement earlier with pure AST and pure autocorrect AST
+      filtered_tests = {}
+      if cfg["retain_waiver_data"]
+        # VERY EXPERIMENTAL, but an empty describe block at the top level
+        # of the control blocks evaluation of ruby code until later-term
+        # waivers (behind the scenes this tells RSpec to hold on and use its internals to lazy load the code). This allows current waiver-data (e.g. skips) to still
+        # be processed and rendered
+        tests.each do |control_filename, source_code|
+          cleared_tests = source_code.scan(/control\s+['"].+?['"].+?(?=(?:control\s+['"].+?['"])|\z)/m).collect do |element|
+            next if element.blank?
+
+            if element&.match?(waived_control_id_regex)
+              splitlines = element.split("\n")
+              splitlines[0] + "\ndescribe '---' do\n" + splitlines[1..-1].join("\n") + "\nend\n"
+            else
+              element
+            end
+          end.join("")
+          filtered_tests[control_filename] = cleared_tests
+        end
+      else
+        tests.each do |control_filename, source_code|
+          cleared_tests = source_code.scan(/control\s+['"].+?['"].+?(?=(?:control\s+['"].+?['"])|\z)/m).select do |control_code|
+            !control_code.match?(waived_control_id_regex)
+          end.join("")
+
+          filtered_tests[control_filename] = cleared_tests
+        end
+      end
+      filtered_tests
     end
 
     # This creates the list of controls provided in the --controls options which need to be include

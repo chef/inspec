@@ -1,0 +1,7 @@
+01_my_broken_control:
+  justification: Sound reasoning
+  run: false
+
+02_my_working_but_waived_control:
+  justification: Sound reasoning
+  run: false

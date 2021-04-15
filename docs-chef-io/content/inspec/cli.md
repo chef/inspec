@@ -276,6 +276,8 @@ This subcommand has additional options:
     Password for enable mode on Cisco IOS devices.
 * ``--filter-empty-profiles``, ``--no-filter-empty-profiles``
     Filter empty profiles (profiles without controls) from the report.
+* ``--filter-waived-controls``
+    Do not execute waived controls in InSpec at all. Must use with --waiver-file. Ignores `run` setting of waiver file.
 * ``--host=HOST``
     Specify a remote host which is tested.
 * ``--input=name1=value1 name2=value2``
