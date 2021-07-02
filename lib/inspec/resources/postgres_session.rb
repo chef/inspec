@@ -12,7 +12,7 @@ module Inspec::Resources
     end
 
     def lines
-      output.split("\n")
+      output.split("\n").map(&:strip)
     end
 
     def to_s
@@ -31,8 +31,8 @@ module Inspec::Resources
 
       # default values:
       # username: 'postgres'
+      # port: '5432'
       # host: 'localhost'
-      # port: 5432
       # db: databse == db_user running the sql query
 
       describe sql.query('SELECT * FROM pg_shadow WHERE passwd IS NULL;') do
@@ -74,8 +74,11 @@ module Inspec::Resources
     end
 
     def create_psql_cmd(query, db = [])
-      dbs = db.map { |x| "-d #{x}" }.join(" ")
-      "PGPASSWORD='#{@pass}' psql -U #{@user} #{dbs} -h #{@host} -p #{@port} -A -t -c #{escaped_query(query)}"
+      if inspec.platform.in_family?("windows")
+        "psql -d postgresql://#{@user}:#{@pass}@#{@host}:#{@port}/#{db.first} -A -t -w -c \"#{query}\""
+      else
+        "psql -d postgresql://#{@user}:#{escaped_query(@pass)}@#{@host}:#{@port}/#{db.first} -A -t -w -c #{escaped_query(query)}"
+      end
     end
   end
 end
