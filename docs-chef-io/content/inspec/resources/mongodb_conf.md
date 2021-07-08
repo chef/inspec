@@ -60,10 +60,3 @@ The following examples show how to use this Chef InSpec audit resource.
 
 For a full list of available matchers, please visit our [matchers page](/inspec/matchers/).
 
-### setting
-
-The `setting` matcher tests specific, named settings in the `mongod.conf` file:
-
-    its(['setting') { should eq 'value' }
-
-Use a `setting` matcher for each setting to be tested.

@@ -33,4 +33,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "train-habitat", "~> 0.1"
   spec.add_dependency "train-aws",     "~> 0.1"
   spec.add_dependency "train-winrm",   "~> 0.2"
+  spec.add_dependency "mongo"
 end
