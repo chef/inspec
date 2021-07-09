@@ -19,8 +19,8 @@ A `google_project_alert_policy` is used to test a Google AlertPolicy resource
 
 ```ruby
 describe.one do
-  google_project_alert_policies(project: 'chef-gcp-inspec').policy_names do |policy_name|
-    describe google_project_alert_policy(project: 'chef-gcp-inspec', name: policy_name) do
+  google_project_alert_policies(project: 'chef-gcp-inspec').policy_names.each do |policy_name|
+    describe google_project_alert_policy(project: 'chef-gcp-inspec', name: policy_name.split('/').last) do
       it { should exist }
       its('display_name') { should cmp 'Display'}
       its('combiner') { should cmp 'OR'}
