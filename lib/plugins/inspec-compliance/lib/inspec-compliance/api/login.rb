@@ -13,6 +13,7 @@ module InspecPlugins
 
           options["server_type"] = "automate2"
           options["server"] = URI("https://#{options["server"]}").to_s if URI(options["server"]).scheme.nil?
+          options["server"].delete_suffix!("/")
 
           Login::Automate2Server.login(options)
         end
