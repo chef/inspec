@@ -2,7 +2,7 @@
 expeditor:
   defaults:
     buildkite:
-      timeout_in_minutes: 45
+      timeout_in_minutes: 90
       retry:
         automatic:
           limit: 1
@@ -41,6 +41,14 @@ steps:
         docker:
           image: ruby:2.7
 
+  - label: run-tests-ruby-3.0
+    command:
+      - /workdir/.expeditor/buildkite/verify.sh
+    expeditor:
+      executor:
+        docker:
+          image: ruby:3.0
+
   - label: isolated-tests-ruby-2.6
     command:
       - RAKE_TASK=test:isolated /workdir/.expeditor/buildkite/verify.sh
@@ -59,3 +67,63 @@ steps:
             - BUILDKITE
           host_os: windows
           shell: ["powershell", "-Command"]
+          image: rubydistros/windows-2019:2.6
+
+  - label: run-tests-ruby-3.0-windows-unit
+    command:
+      - /workdir/.expeditor/buildkite/verify_unit.ps1
+    expeditor:
+      executor:
+        docker:
+          environment:
+            - BUILDKITE
+          host_os: windows
+          shell: ["powershell", "-Command"]
+          image: rubydistros/windows-2019:3.0
+
+  - label: run-tests-ruby-3.0-windows-functional 0
+    command:
+      - /workdir/.expeditor/buildkite/verify_functional_0.ps1
+    expeditor:
+      executor:
+        docker:
+          environment:
+            - BUILDKITE
+          host_os: windows
+          shell: ["powershell", "-Command"]
+          image: rubydistros/windows-2019:3.0
+
+  - label: run-tests-ruby-3.0-windows-functional 1
+    command:
+      - /workdir/.expeditor/buildkite/verify_functional_1.ps1
+    expeditor:
+      executor:
+        docker:
+          environment:
+            - BUILDKITE
+          host_os: windows
+          shell: ["powershell", "-Command"]
+          image: rubydistros/windows-2019:3.0
+
+  - label: run-tests-ruby-3.0-windows-functional 2
+    command:
+      - /workdir/.expeditor/buildkite/verify_functional_2.ps1
+    expeditor:
+      executor:
+        docker:
+          environment:
+            - BUILDKITE
+          host_os: windows
+          shell: ["powershell", "-Command"]
+          image: rubydistros/windows-2019:3.0
+  - label: run-tests-ruby-3.0-windows-functional 3
+    command:
+      - /workdir/.expeditor/buildkite/verify_functional_3.ps1
+    expeditor:
+      executor:
+        docker:
+          environment:
+            - BUILDKITE
+          host_os: windows
+          shell: ["powershell", "-Command"]
+          image: rubydistros/windows-2019:3.0

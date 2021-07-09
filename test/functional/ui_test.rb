@@ -20,6 +20,10 @@ describe "InSpec UI behavior" do
   include PluginFunctionalHelper
   include VisibleSpaces
 
+  def ruby3?
+    Gem.ruby_version >= Gem::Version.new("3.0.0")
+  end
+
   parallelize_me!
 
   let(:plugin_path) { File.join(mock_path, "plugins", "inspec-test-ui", "lib", "inspec-test-ui") }
@@ -154,6 +158,7 @@ describe "InSpec UI behavior" do
     describe "normal exit" do
       let(:feature) { "exitnormal" }
       it "has correct output" do
+        skip if ruby3? && windows?
         _(run_result.stderr).must_equal ""
         _(run_result.stdout).must_equal "test exit normal\n"
 
@@ -164,6 +169,7 @@ describe "InSpec UI behavior" do
     describe "usage exit" do
       let(:feature) { "exitusage" }
       it "has correct output" do
+        skip if ruby3? && windows?
         _(run_result.stderr).must_equal "" # ie, we intentionally exit-1'd; not a crash
         _(run_result.stdout).must_equal "test exit usage_error\n"
 
@@ -174,6 +180,7 @@ describe "InSpec UI behavior" do
     describe "plugin exit" do
       let(:feature) { "exitplugin" }
       it "has correct output" do
+        skip if ruby3? && windows?
         _(run_result.stderr).must_equal ""
         _(run_result.stdout).must_equal "test exit plugin_error\n"
 
@@ -184,6 +191,7 @@ describe "InSpec UI behavior" do
     describe "skipped exit" do
       let(:feature) { "exitskipped" }
       it "has correct output" do
+        skip if ruby3? && windows?
         _(run_result.stderr).must_equal ""
         _(run_result.stdout).must_equal "test exit skipped_tests\n"
 
@@ -194,6 +202,7 @@ describe "InSpec UI behavior" do
     describe "failed exit" do
       let(:feature) { "exitfailed" }
       it "has correct output" do
+        skip if ruby3? && windows?
         _(run_result.stderr).must_equal ""
         _(run_result.stdout).must_equal "test exit failed_tests\n"
 
@@ -209,6 +218,7 @@ describe "InSpec UI behavior" do
       describe "the interactive flag" do
         let(:feature) { "interactive" }
         it "should report the interactive flag is on" do
+          _(run_result.stderr).must_equal ""
           _(run_result.stdout).must_include "true"
 
           assert_exit_code 0, run_result
@@ -240,6 +250,7 @@ describe "InSpec UI behavior" do
     describe "the interactive flag" do
       let(:feature) { "interactive" }
       it "should report the interactive flag is off" do
+        _(run_result.stderr).must_equal ""
         _(run_result.stdout).must_include "false"
 
         assert_exit_code 0, run_result

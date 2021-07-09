@@ -39,7 +39,7 @@ module InstallerTestHelpers
   @@orig_home = Dir.home
 
   def setup
-    WebMock.disable_net_connect!(allow: %r{(api\.)?rubygems\.org/.*}) if RUN_LIVE_NET
+    WebMock.disable_net_connect!(allow: %r{((api|index)\.)?rubygems\.org/.*}) if RUN_LIVE_NET
 
     repo_path = File.expand_path(File.join( __FILE__, "..", "..", "..", "..", ".."))
     mock_path = File.join(repo_path, "test", "fixtures")

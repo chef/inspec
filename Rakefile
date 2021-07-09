@@ -231,10 +231,14 @@ namespace :test do
 
   Rake::TestTask.new(:functional) do |t|
     t.libs << "test"
-    t.test_files = Dir.glob([
+    files = Dir.glob([
       "test/functional/**/*_test.rb",
       "lib/plugins/inspec-*/test/functional/**/*_test.rb",
-    ])
+    ]).sort
+    slices = (ENV["SLICES"] || 1).to_i
+    slice = (ENV["SLICE"] || 0).to_i
+    slice_len = (files.length / slices) + 1
+    t.test_files = files.slice(slice_len * slice, slice_len)
     t.warning = !!ENV["W"]
     t.verbose = !!ENV["V"] # default to off. the test commands are _huge_.
     t.ruby_opts = ["--dev"] if defined?(JRUBY_VERSION)

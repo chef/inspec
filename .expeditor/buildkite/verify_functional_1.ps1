@@ -7,7 +7,10 @@ bundle --version
 echo "--- bundle install"
 bundle install --jobs=7 --retry=3 --without tools maintenance deploy
 
-echo "+++ bundle exec rake test:isolated"
-bundle exec rake test:isolated K=3
+$SLICES=4
+$SLICE=1
+
+echo "+++ bundle exec rake test:functional slice $SLICE/$SLICES"
+bundle exec rake test:functional SLICES=$SLICES SLICE=$SLICE
 
 exit $LASTEXITCODE

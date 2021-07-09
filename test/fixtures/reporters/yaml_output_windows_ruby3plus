@@ -1,0 +1,36 @@
+---
+:platform:
+  :name: fedora
+  :release: '28'
+:profiles:
+- :name: tests from t.rb
+  :sha256: 9260af15d2b7568443df4d9d2556f773f425f92491c97eb1d201c535c7a9f5e0
+  :title: tests from t.rb
+  :supports: []
+  :attributes: []
+  :groups:
+  - :id: t.rb
+    :controls:
+    - "(generated from t.rb:1 0aa70d93be7b0cf41b97a1363bb5e8b8)"
+  :controls:
+  - :id: "(generated from t.rb:1 0aa70d93be7b0cf41b97a1363bb5e8b8)"
+    :title:
+    :desc:
+    :descriptions: []
+    :impact: 0.5
+    :refs: []
+    :tags: {}
+    :code: ''
+    :source_location:
+      :line: 89
+      :ref: "/home/frezbo/git/work/ruby/inspec/lib/inspec/control_eval_context.rb"
+    :waiver_data: {}
+    :results:
+    - :status: passed
+      :code_desc: File /tmp should exist
+      :run_time: 0.001313935
+      :start_time: '2018-05-31T16:22:19+05:30'
+      :resource_params: ''
+:statistics:
+  :duration: 0.002678506
+:version: 2.1.83

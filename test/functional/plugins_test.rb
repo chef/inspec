@@ -111,8 +111,8 @@ describe "input plugins" do
   def run_input_plugin_test_with_controls(controls)
     cmd = "exec #{profile} --controls #{controls}"
     run_result = run_inspec_process(cmd, json: true, env: env)
-    assert_json_controls_passing(run_result)
     _(run_result.stderr).must_be_empty
+    assert_json_controls_passing(run_result)
   end
 
   describe "when an input is provided only by a plugin" do
@@ -312,6 +312,7 @@ describe "train plugin support" do
   describe "when a train plugin is installed" do
     it "can run inspec detect against a URL target" do
       outcome = inspec_with_env("detect -t test-fixture://", INSPEC_CONFIG_DIR: File.join(config_dir_path, "train-test-fixture"))
+      _(outcome.stderr).must_be_empty
 
       lines = outcome.stdout.split("\n")
       _(lines.grep(/Name/).first).must_include("test-fixture")
@@ -321,14 +322,14 @@ describe "train plugin support" do
       _(lines.grep(/Families/).first).must_include("windows")
       _(lines.grep(/Families/).first).must_include("unix")
       _(lines.grep(/Arch/).first).must_include("mock")
-
-      _(outcome.stderr).must_be_empty
 
       assert_exit_code 0, outcome
     end
 
     it "can run inspec detect against a test-fixture backend" do
       outcome = inspec_with_env("detect -b test-fixture", INSPEC_CONFIG_DIR: File.join(config_dir_path, "train-test-fixture"))
+      _(outcome.stderr).must_be_empty
+
       lines = outcome.stdout.split("\n")
       _(lines.grep(/Name/).first).must_include("test-fixture")
       _(lines.grep(/Name/).first).wont_include("train-test-fixture")
@@ -337,8 +338,6 @@ describe "train plugin support" do
       _(lines.grep(/Families/).first).must_include("windows")
       _(lines.grep(/Families/).first).must_include("unix")
       _(lines.grep(/Arch/).first).must_include("mock")
-
-      _(outcome.stderr).must_be_empty
 
       assert_exit_code 0, outcome
     end
@@ -346,10 +345,9 @@ describe "train plugin support" do
     it "can run inspec shell and read a file" do
       # The test fixture always returns the same content regardless of path
       outcome = inspec_with_env("shell -t test-fixture:// -c 'file(%q{/opt/any-path}).content'", INSPEC_CONFIG_DIR: File.join(config_dir_path, "train-test-fixture"))
+      _(outcome.stderr).must_be_empty
 
       _(outcome.stdout.chomp).must_equal "Lorem Ipsum"
-
-      _(outcome.stderr).must_be_empty
 
       assert_exit_code 0, outcome
     end
@@ -357,19 +355,18 @@ describe "train plugin support" do
     it "can run inspec shell and run a command" do
       # The test fixture always returns the same stdout and the same exit code.
       outcome = inspec_with_env("shell -t test-fixture:// -c 'command(%q{echo hello}).exit_status'", INSPEC_CONFIG_DIR: File.join(config_dir_path, "train-test-fixture"))
+      _(outcome.stderr).must_be_empty
 
       _(outcome.stdout.chomp).must_equal "17"
-
-      _(outcome.stderr).must_be_empty
 
       assert_exit_code 0, outcome
 
       # TODO: split
       outcome = inspec_with_env("shell -t test-fixture:// -c 'command(%q{echo hello}).stdout'", INSPEC_CONFIG_DIR: File.join(config_dir_path, "train-test-fixture"))
 
-      _(outcome.stdout.chomp).must_equal "Mock Command Result stdout"
-
       _(outcome.stderr).must_be_empty
+
+      _(outcome.stdout.chomp).must_equal "Mock Command Result stdout"
 
       assert_exit_code 0, outcome
     end
