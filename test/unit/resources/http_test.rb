@@ -193,19 +193,19 @@ describe "Inspec::Resources::Http" do
       end
     end
 
-    describe "run_curl request" do
+    describe "run_http request" do
       it "returns nil when nil is returned" do
         Inspec::Resources::Cmd.any_instance
           .stubs(:stdout)
           .returns(nil)
-        _(worker.send(:run_curl)).must_be_nil
+        _(worker.send(:run_http)).must_be_nil
       end
 
       it "returns nil when failure is returned" do
         Inspec::Resources::Cmd.any_instance
           .stubs(:exit_status)
           .returns(1)
-        _(worker.send(:run_curl)).must_be_nil
+        _(worker.send(:run_http)).must_be_nil
       end
 
       it "returns html when html is returned" do
@@ -213,7 +213,7 @@ describe "Inspec::Resources::Http" do
           .stubs(:stdout)
           .returns("HTTP/1.1 200 OK\nDate: Tue, 03 Oct 2017 20:30:08 GMT\nExpires: -1\nCache-Control: private")
         assert = ["Date: Tue, 03 Oct 2017 20:30:08 GMT", "Expires: -1", "Cache-Control: private"]
-        _(worker.send(:run_curl)).must_equal assert
+        _(worker.send(:run_http)).must_equal assert
       end
     end
   end
@@ -241,6 +241,42 @@ describe "Inspec::Resources::Http" do
       _(headers.C).must_equal(3)
       _(headers.d).must_equal(4)
       _(headers.D).must_equal(4)
+    end
+  end
+
+  describe "Windows-Simple" do
+    let(:backend)     { MockLoader.new(:windows).backend }
+    let(:http_method) { "GET" }
+    let(:url)         { "https://www.example.com" }
+    let(:opts)        { {} }
+    let(:worker)      { Inspec::Resources::Http::Worker::Remote.new(backend, http_method, url, opts) }
+
+    describe "simple HTTP request with no options" do
+      it "returns correct data" do
+        Inspec::Resources::Cmd.any_instance
+          .stubs(:exist?)
+          .returns(true)
+        _(worker.status).must_equal 200
+        _(worker.response_headers["Content-Type"]).must_equal "text/html; charset=UTF-8"
+      end
+    end
+  end
+
+  describe "Windows-Head" do
+    let(:backend)     { MockLoader.new(:windows).backend }
+    let(:http_method) { "HEAD" }
+    let(:url)         { "https://www.example.com" }
+    let(:opts)        { {} }
+    let(:worker)      { Inspec::Resources::Http::Worker::Remote.new(backend, http_method, url, opts) }
+
+    describe "simple Head request" do
+      it "returns correct data" do
+        Inspec::Resources::Cmd.any_instance
+          .stubs(:exist?)
+          .returns(true)
+        _(worker.status).must_equal 200
+        _(worker.response_headers["Content-Type"]).must_equal "text/html; charset=UTF-8"
+      end
     end
   end
 end

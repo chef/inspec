@@ -532,6 +532,9 @@ class MockLoader
       "curl -i --head --connect-timeout 60 --max-time 120 'http://www.example.com'" => cmd.call("http-remote-head-request"),
       "curl -i -X OPTIONS --connect-timeout 60 --max-time 120 -H 'Access-Control-Request-Method: GET' -H 'Access-Control-Request-Headers: origin, x-requested-with' -H 'Origin: http://www.example.com' 'http://www.example.com'" => cmd.call("http-remote-options-request"),
 
+      # http resource - windows
+      "Invoke-WebRequest -Method GET -TimeoutSec 120 'https://www.example.com' | Select-Object -Property * | ConvertTo-json" => cmd.call("http-windows-remote-no-options"),
+      "Invoke-WebRequest -Method HEAD -TimeoutSec 120 'https://www.example.com' | Select-Object -Property * | ConvertTo-json" => cmd.call("http-windows-remote-head"),
       # elasticsearch resource
       "curl -H 'Content-Type: application/json' http://localhost:9200/_nodes" => cmd.call("elasticsearch-cluster-nodes-default"),
       "curl -k -H 'Content-Type: application/json' http://localhost:9200/_nodes" => cmd.call("elasticsearch-cluster-no-ssl"),

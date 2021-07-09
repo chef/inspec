@@ -11,6 +11,7 @@ module Inspec::Resources
   class Http < Inspec.resource(1)
     name "http"
     supports platform: "unix"
+    supports platform: "windows"
     desc "Use the http InSpec audit resource to test http call."
     example <<~EXAMPLE
       describe http('http://localhost:8080/ping', auth: {user: 'user', pass: 'test'}, params: {format: 'html'}) do
@@ -104,6 +105,7 @@ module Inspec::Resources
           opts[:data]
         end
 
+        # not supported on Windows
         def open_timeout
           opts.fetch(:open_timeout, 60)
         end
@@ -117,7 +119,7 @@ module Inspec::Resources
         end
 
         def max_redirects
-          opts.fetch(:max_redirects, 0)
+          opts.fetch(:max_redirects, nil)
         end
       end
 
@@ -141,7 +143,7 @@ module Inspec::Resources
 
           conn = Faraday.new(url: url, headers: request_headers, params: params, ssl: { verify: ssl_verify? }) do |builder|
             builder.request :url_encoded
-            builder.use FaradayMiddleware::FollowRedirects, limit: max_redirects if max_redirects > 0
+            builder.use FaradayMiddleware::FollowRedirects, limit: max_redirects unless max_redirects.nil?
             builder.adapter Faraday.default_adapter
           end
 
@@ -162,98 +164,135 @@ module Inspec::Resources
         attr_reader :inspec
 
         def initialize(inspec, http_method, url, opts)
-          unless inspec.command("curl").exist?
+          http_cmd = inspec.os.windows? ? "Invoke-WebRequest" : "curl"
+          unless inspec.command(http_cmd).exist?
             raise Inspec::Exceptions::ResourceSkipped,
-                  "curl is not available on the target machine"
+                  "#{http_cmd} is not available on the target machine"
           end
-
-          @ran_curl = false
+          @ran_http = false
           @inspec = inspec
           super(http_method, url, opts)
         end
 
         def status
-          run_curl
+          run_http
           @status
         end
 
         def body
-          run_curl
+          run_http
           @body&.strip
         end
 
         def response_headers
-          run_curl
+          run_http
           @response_headers
         end
 
         private
 
-        def run_curl
-          return if @ran_curl
+        def run_http
+          return if @ran_http
 
-          cmd_result = inspec.command(curl_command)
+          cmd_result = inspec.command(http_command)
           response = cmd_result.stdout
-          @ran_curl = true
+          @ran_http = true
           return if response.nil? || cmd_result.exit_status != 0
 
-          # strip any carriage returns to normalize output
-          response.delete!("\r")
+          if inspec.os.windows?
+            response = JSON.parse(response)
+            @status = response["StatusCode"]
+            @body = response["RawContent"]
 
-          # split the prelude (status line and headers) and the body
-          prelude, remainder = response.split("\n\n", 2)
-          loop do
-            break unless remainder =~ %r{^HTTP/}
+            @response_headers = {}
+            response["Headers"].each do |name, value|
+              @response_headers["#{name}"] = value
+            end
+          else
+            # strip any carriage returns to normalize output
+            response.delete!("\r")
 
-            prelude, remainder = remainder.split("\n\n", 2)
-          end
-          @body = remainder
-          prelude = prelude.lines
+            # split the prelude (status line and headers) and the body
+            prelude, remainder = response.split("\n\n", 2)
+            loop do
+              break unless remainder =~ %r{^HTTP/}
 
-          # grab the status off of the first line of the prelude
-          status_line = prelude.shift
-          @status = status_line.split(" ", 3)[1].to_i
+              prelude, remainder = remainder.split("\n\n", 2)
+            end
+            @body = remainder
+            prelude = prelude.lines
 
-          # parse the rest of the prelude which will be all the HTTP headers
-          @response_headers = {}
-          prelude.each do |line|
-            line.strip!
-            key, value = line.split(":", 2)
-            @response_headers[key] = value.strip
+            # grab the status off of the first line of the prelude
+            status_line = prelude.shift
+            @status = status_line.split(" ", 3)[1].to_i
+
+            # parse the rest of the prelude which will be all the HTTP headers
+            @response_headers = {}
+            prelude.each do |line|
+              line.strip!
+              key, value = line.split(":", 2)
+              @response_headers[key] = value.strip
+            end
+
           end
         end
 
-        def curl_command # rubocop:disable Metrics/AbcSize
-          cmd = ["curl -i"]
+        def http_command # rubocop:disable Metrics/AbcSize
+          if inspec.os.windows?
+            cmd = ["Invoke-WebRequest"]
 
-          # Use curl's --head option when the method requested is HEAD. Otherwise,
-          # the user may experience a timeout when curl does not properly close
-          # the connection after the response is received.
-          if http_method.casecmp("HEAD") == 0
-            cmd << "--head"
+            cmd << "-Method #{http_method}"
+            # Missing connect-timeout
+            cmd << "-TimeoutSec #{open_timeout + read_timeout}"
+            # Insecure not supported simply https://stackoverflow.com/questions/11696944/powershell-v3-invoke-webrequest-https-error
+            cmd << "-Body #{request_body.gsub('"', '`"')}" unless request_body.nil?
+            cmd << "-MaximumRedirection #{max_redirects}" unless max_redirects.nil?
+            request_headers["Authorization"] = """ '\"Basic ' + [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes(\"#{username}:#{password}\")) +'\"' """ unless username.nil? || password.nil?
+
+            request_header_string = nil
+            request_headers.each do |k, v|
+              request_header_string << " #{k} = #{v}"
+            end
+            cmd << "-Headers @{#{request_header_string.join(";")}}" unless request_header_string.nil?
+            if params.nil?
+              cmd << "'#{url}'"
+            else
+              cmd << "'#{url}?#{params.map { |e| e.join("=") }.join("&")}'"
+            end
+            cmd << "| Select-Object -Property * | ConvertTo-json" # We use `Select-Object -Property * ` to get around an odd PowerShell error
+            cmd.join(" ")
           else
-            cmd << "-X #{http_method}"
+            cmd = ["curl -i"]
+
+            # Use curl's --head option when the method requested is HEAD. Otherwise,
+            # the user may experience a timeout when curl does not properly close
+            # the connection after the response is received.
+            if http_method.casecmp("HEAD") == 0
+              cmd << "--head"
+            else
+              cmd << "-X #{http_method}"
+            end
+
+            cmd << "--connect-timeout #{open_timeout}"
+            cmd << "--max-time #{open_timeout + read_timeout}"
+            cmd << "--user \'#{username}:#{password}\'" unless username.nil? || password.nil?
+            cmd << "--insecure" unless ssl_verify?
+            cmd << "--data #{Shellwords.shellescape(request_body)}" unless request_body.nil?
+            cmd << "--location" unless max_redirects.nil?
+            cmd << "--max-redirs #{max_redirects}" unless max_redirects.nil?
+
+            request_headers.each do |k, v|
+              cmd << "-H '#{k}: #{v}'"
+            end
+
+            if params.nil?
+              cmd << "'#{url}'"
+            else
+              cmd << "'#{url}?#{params.map { |e| e.join("=") }.join("&")}'"
+            end
+
+            cmd.join(" ")
           end
-
-          cmd << "--connect-timeout #{open_timeout}"
-          cmd << "--max-time #{open_timeout + read_timeout}"
-          cmd << "--user \'#{username}:#{password}\'" unless username.nil? || password.nil?
-          cmd << "--insecure" unless ssl_verify?
-          cmd << "--data #{Shellwords.shellescape(request_body)}" unless request_body.nil?
-          cmd << "--location" if max_redirects > 0
-          cmd << "--max-redirs #{max_redirects}" if max_redirects > 0
-
-          request_headers.each do |k, v|
-            cmd << "-H '#{k}: #{v}'"
-          end
-
-          if params.nil?
-            cmd << "'#{url}'"
-          else
-            cmd << "'#{url}?#{params.map { |e| e.join("=") }.join("&")}'"
-          end
-
-          cmd.join(" ")
         end
       end
     end
