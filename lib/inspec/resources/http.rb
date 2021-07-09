@@ -116,6 +116,18 @@ module Inspec::Resources
           opts.fetch(:ssl_verify, true)
         end
 
+        def ssl_client_cert
+          opts.fetch(:ssl_client_cert, nil)
+        end
+
+        def ssl_client_key
+          opts.fetch(:ssl_client_key, nil)
+        end
+
+        def ssl_client_cacert
+          opts.fetch(:ssl_client_cacert, nil)
+        end
+
         def max_redirects
           opts.fetch(:max_redirects, 0)
         end
@@ -242,6 +254,9 @@ module Inspec::Resources
           cmd << "--data #{Shellwords.shellescape(request_body)}" unless request_body.nil?
           cmd << "--location" if max_redirects > 0
           cmd << "--max-redirs #{max_redirects}" if max_redirects > 0
+          cmd << "--cacert #{ssl_client_cacert}" unless ssl_client_cacert.nil?
+          cmd << "--key #{ssl_client_key}" unless ssl_client_key.nil?
+          cmd << "--cert #{ssl_client_cert}" unless ssl_client_cert.nil?
 
           request_headers.each do |k, v|
             cmd << "-H '#{k}: #{v}'"
