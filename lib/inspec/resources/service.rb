@@ -152,6 +152,12 @@ module Inspec::Resources
         else
           SysV.new(inspec, service_ctl || "/sbin/service")
         end
+      when "alibaba"
+        if os[:release].to_i >= 3
+          Systemd.new(inspec, service_ctl)
+        else
+          SysV.new(inspec, service_ctl || "/sbin/service")
+        end
       when "wrlinux"
         SysV.new(inspec, service_ctl)
       when "mac_os_x", "darwin"

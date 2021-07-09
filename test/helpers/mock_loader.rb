@@ -34,6 +34,7 @@ class MockLoader
     aix: { name: "aix", family: "aix", release: "7.2", arch: "powerpc" },
     amazon: { name: "amazon", family: "redhat", release: "2015.03", arch: "x86_64" },
     amazon2: { name: "amazon", family: "redhat", release: "2", arch: "x86_64" },
+    aliyun3: { name: "alibaba", family: "redhat", release: "3", arch: "x86_64" },
     yocto: { name: "yocto", family: "yocto", release: "0.0.1", arch: "aarch64" },
     undefined: { name: nil, family: nil, release: nil, arch: nil },
   }
