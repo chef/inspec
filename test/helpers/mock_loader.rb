@@ -97,6 +97,7 @@ class MockLoader
       "/etc/passwd" => mockfile.call("passwd"),
       "/etc/shadow" => mockfile.call("shadow"),
       "/etc/ntp.conf" => mockfile.call("ntp.conf"),
+      "/etc/chrony.conf" => mockfile.call("chrony.conf"),
       "/etc/login.defs" => mockfile.call("login.defs"),
       "/etc/security/limits.conf" => mockfile.call("limits.conf"),
       "/etc/inetd.conf" => mockfile.call("inetd.conf"),
