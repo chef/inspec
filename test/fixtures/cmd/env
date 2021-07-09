@@ -1,1 +1,2 @@
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ORACLE_HOME=/opt/oracle/product/18c/dbhomeXE

@@ -15,7 +15,7 @@ describe Inspec::Resources::Cmd do
 
   it "runs a valid mocked command" do
     _(resource("env").result).wont_be_nil
-    _(resource("env").stdout).must_equal "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n"
+    _(resource("env").stdout).must_include "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n"
     _(resource("env").stderr).must_equal ""
     _(resource("env").exit_status).must_equal 0
   end
