@@ -50,6 +50,7 @@ module Inspec
       @conf[:logger] ||= Logger.new(nil)
       @target_profiles = []
       @controls = @conf[:controls] || []
+      @tags = @conf[:tags] || []
       @depends = @conf[:depends] || []
       @create_lockfile = @conf[:create_lockfile]
       @cache = Inspec::Cache.new(@conf[:vendor_cache])
@@ -199,6 +200,7 @@ module Inspec
                                            vendor_cache: @cache,
                                            backend: @backend,
                                            controls: @controls,
+                                           tags: @tags,
                                            runner_conf: @conf)
       raise "Could not resolve #{target} to valid input." if profile.nil?
 

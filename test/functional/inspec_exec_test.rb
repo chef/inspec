@@ -237,6 +237,51 @@ Test Summary: 0 successful, 0 failures, 0 skipped
     assert_exit_code 100, out
   end
 
+  it "executes only specified controls when selecting the controls by literal single tag name" do
+    inspec("exec " + File.join(profile_path, "control-tags") + " --no-create-lockfile --tags tag1")
+    _(stdout).must_include "true is expected to eq true\n"
+    _(stdout).must_include "Test Summary: 1 successful, 0 failures, 0 skipped\n"
+    _(stderr).must_equal ""
+
+    assert_exit_code 0, out
+  end
+
+  it "executes only specified controls when selecting the controls by literal multiple tag names" do
+    inspec("exec " + File.join(profile_path, "control-tags") + " --no-create-lockfile --tags tag1 tag5 tag6 tag17 'tagname with space'")
+    _(stdout).must_include "true is expected to eq true\n"
+    _(stdout).must_include "Test Summary: 4 successful, 0 failures, 0 skipped\n"
+    _(stderr).must_equal ""
+
+    assert_exit_code 0, out
+  end
+
+  it "executes only specified controls when selecting the controls by using regex on tags" do
+    inspec("exec " + File.join(profile_path, "control-tags") + " --no-create-lockfile --tags '/\s+/'")
+    _(stdout).must_include "true is expected to eq true\n"
+    _(stdout).must_include "Test Summary: 1 successful, 0 failures, 0 skipped\n"
+    _(stderr).must_equal ""
+
+    assert_exit_code 0, out
+  end
+
+  it "executes only specified controls when selecting failing controls by using literal name of tag" do
+    inspec("exec " + File.join(profile_path, "control-tags") + " --no-create-lockfile --tags tag18")
+    _(stdout).must_include "true is expected to eq false\n"
+    _(stdout).must_include "Test Summary: 0 successful, 1 failure, 0 skipped\n"
+    _(stderr).must_equal ""
+
+    assert_exit_code 100, out
+  end
+
+  it "executes only specified controls when selecting failing controls by using regex on tags" do
+    inspec("exec " + File.join(profile_path, "control-tags") + " --no-create-lockfile --tags '/(18)/'")
+    _(stdout).must_include "true is expected to eq false\n"
+    _(stdout).must_include "Test Summary: 0 successful, 1 failure, 0 skipped\n"
+    _(stderr).must_equal ""
+
+    assert_exit_code 100, out
+  end
+
   it "reports whan a profile cannot be loaded" do
     inspec("exec " + File.join(profile_path, "raise_outside_control") + " --no-create-lockfile")
     _(stdout).must_match(/Profile:[\W]+InSpec Profile \(raise_outside_control\)/)

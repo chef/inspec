@@ -1,0 +1,7 @@
+name: control-tags
+title: InSpec Profile for testing filtering on controls using tags
+license: Apache-2.0
+summary: An InSpec Compliance Profile for testing filtering on controls using tags
+version: 0.1.0
+supports:
+  platform: os

@@ -65,6 +65,8 @@ class Inspec::InspecCLI < Inspec::BaseCLI
     desc: "Save the created profile to a path"
   option :controls, type: :array,
     desc: "A list of controls to include. Ignore all other tests."
+  option :tags, type: :array,
+    desc: "A list of tags to filter controls and include only those. Ignore all other tests."
   profile_options
   def json(target)
     require "json" unless defined?(JSON)
