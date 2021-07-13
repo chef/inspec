@@ -1,0 +1,2 @@
+rule protocol value="ah" accept
+rule service name="ftp" log limit value="1/m" audit accept
