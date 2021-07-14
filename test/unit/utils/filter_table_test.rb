@@ -35,6 +35,11 @@ describe FilterTable do
     _(resource.new(nil).where { false }.params).must_equal []
   end
 
+  it "supports range" do
+    factory.add_accessor(:where).connect(resource, :data)
+    _(instance.where({ foo: (3..5) }).params).must_equal [data[0]]
+  end
+
   it "retrieves the resource from all entries" do
     factory.add_accessor(:where)
       .add(:baz?) { |x| x.resource } # rubocop: disable Style/SymbolProc
@@ -179,6 +184,18 @@ describe FilterTable do
 
     it "filter by missing regex" do
       _(instance.baz(/zzz/).params).must_equal []
+    end
+  end
+
+  describe "with a range filter" do
+    before { factory.add(:foo).connect(resource, :data) }
+
+    it "filter and retrieves data with matching range" do
+      _(instance.foo((3..5)).params).must_equal [data[0]]
+    end
+
+    it "filter and retrieves empty result if no data in matching range" do
+      _(instance.foo((4..5)).params).must_equal []
     end
   end
 end

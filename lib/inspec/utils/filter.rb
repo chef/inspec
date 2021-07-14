@@ -256,7 +256,7 @@ module FilterTable
     end
 
     def matches(x, y)
-      x === y # rubocop:disable Style/CaseEquality
+      y === x # rubocop:disable Style/CaseEquality
     end
 
     def filter_raw_data(current_raw_data, field, desired_value)
